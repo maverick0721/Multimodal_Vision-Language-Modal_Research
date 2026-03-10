@@ -1,0 +1,6 @@
+torch
+torchvision
+tiktoken
+webdataset
+matplotlib
+flash-attn
