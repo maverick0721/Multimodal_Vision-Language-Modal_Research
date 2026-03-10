@@ -2,18 +2,32 @@ import torch
 
 from multimodal.vlm_model import VLM
 from experiments.logger import Logger
+from text.lora import apply_lora
+
 
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
 
+
 model = VLM(vocab=32000).cuda()
 
+# Apply LoRA adapters
+apply_lora(model)
+
+# Freeze base model parameters (train only LoRA)
+for name, p in model.named_parameters():
+    if "lora_" not in name:
+        p.requires_grad = False
+
+
 optimizer = torch.optim.AdamW(
-    model.parameters(),
-    lr=3e-4
+    filter(lambda p: p.requires_grad, model.parameters()),
+    lr=1e-4
 )
 
+
 logger = Logger()
+
 
 for step in range(10000):
 
@@ -28,6 +42,7 @@ for step in range(10000):
 
     logits = model(images, tokens)
 
+    # Autoregressive language modeling loss
     shift_logits = logits[:, :-1, :].contiguous()
     shift_labels = tokens[:, 1:].contiguous()
 
@@ -42,6 +57,6 @@ for step in range(10000):
 
     optimizer.step()
 
-    logger.log(step,loss.item())
+    logger.log(step, loss.item())
 
-    print(step,loss.item())
+    print(step, loss.item())
