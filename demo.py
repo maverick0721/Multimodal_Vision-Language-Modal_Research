@@ -1,20 +1,25 @@
 import torch
-from multimodal.vlm_model import VLM
-from inference.generate import generate
+import glob
 
+from inference.generate import Generator
 
-model = VLM(vocab=32000)
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model.load_state_dict(
-    torch.load("experiments/run_001/checkpoint_1000.pt")
-)
+ckpts = sorted(glob.glob("outputs/checkpoint_*.pt") + glob.glob("experiments/*/checkpoint_*.pt"))
 
-model.eval()
+if len(ckpts) == 0:
+    raise RuntimeError("No checkpoints found")
 
-image = torch.randn(1,3,224,224)
+checkpoint = ckpts[-1]
 
-prompt = "Describe this image"
+print("Using checkpoint:", checkpoint)
 
-output = generate(model, image, prompt)
+generator = Generator(checkpoint)
 
-print(output)
+prompt = "What animal is this?"
+
+image_path = "images/dog.jpg"
+
+output = generator.generate(image_path, prompt)
+
+print("Model output:", output)

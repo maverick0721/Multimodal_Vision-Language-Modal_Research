@@ -53,24 +53,26 @@ echo ""
 echo "STEP 4: Training model"
 echo "-------------------------------------------------"
 
+export PYTHONPATH=$PYTHONPATH:$(pwd)
+
 python -m training.train_vlm \
     --model_config configs/model.yaml \
     --train_config configs/training.yaml \
-    --output_dir experiments/run_pipeline
+    --output_dir outputs
 
 
 echo ""
 echo "STEP 5: Evaluation"
 echo "-------------------------------------------------"
 
-python evaluation/evaluate.py
+python -m evaluation.evaluate
 
 
 echo ""
 echo "STEP 6: Benchmarks"
 echo "-------------------------------------------------"
 
-python evaluation/run_benchmarks.py
+python -m evaluation.run_benchmarks
 
 
 echo ""
@@ -78,7 +80,7 @@ echo "STEP 7: Demo test"
 echo "-------------------------------------------------"
 
 if [ -f "demo.py" ]; then
-    python demo.py
+    python -m demo
 else
     echo "demo.py not found, skipping demo"
 fi
@@ -89,7 +91,7 @@ echo "STEP 8: Inference test"
 echo "-------------------------------------------------"
 
 if [ -f "inference/generate.py" ]; then
-    python inference/generate.py
+    python -m inference.generate
 fi
 
 
@@ -98,7 +100,7 @@ echo "STEP 9: Chat interface"
 echo "-------------------------------------------------"
 
 if [ -f "inference/run_chat.py" ]; then
-    python inference/run_chat.py
+    python -m inference.run_chat
 fi
 
 

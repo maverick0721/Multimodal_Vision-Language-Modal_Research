@@ -8,13 +8,14 @@ from text.gemma_model import GemmaModel
 from multimodal.projector import ImageProjector
 from multimodal.projection_heads import ProjectionHead
 
-self.resampler = PerceiverResampler()
-
 class VLM(nn.Module):
 
     def __init__(self, vocab, dim=768):
 
         super().__init__()
+
+        # resampler for vision tokens
+        self.resampler = PerceiverResampler()
 
         # vision stack
         self.vision = SigLipEncoder()
@@ -28,7 +29,7 @@ class VLM(nn.Module):
         self.image_proj = ProjectionHead(dim)
         self.text_proj = ProjectionHead(dim)
 
-    def forward(self, image, tokens):
+    def forward(self, image, tokens, kv_cache=None):
 
         vision_tokens = self.vision(image)
 
@@ -36,12 +37,20 @@ class VLM(nn.Module):
 
         vision_tokens = self.project(vision_tokens)
 
-        logits = self.text(tokens, vision_tokens)
+        text_out = self.text(tokens, vision_tokens)
+
+        # handle tuple outputs: GemmaModel returns (hidden_states, logits)
+        if isinstance(text_out, tuple):
+            hidden_states = text_out[0]
+            logits = text_out[1]
+        else:
+            hidden_states = text_out
+            logits = text_out
+
+        moe_loss = torch.tensor(0.0, device=image.device)
 
         img_emb = vision_tokens.mean(dim=1)
 
-        txt_emb = logits.mean(dim=1)
-
-        moe_loss = torch.tensor(0.0, device=image.device)
+        txt_emb = hidden_states.mean(dim=1)
 
         return logits, img_emb, txt_emb, moe_loss

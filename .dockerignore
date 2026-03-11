@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+outputs/checkpoint_*.pt
+outputs/metrics.json
+outputs/train_log.json
+experiments/
+.git/
+.env
+*.egg-info/
+dist/
+build/
+.vscode/

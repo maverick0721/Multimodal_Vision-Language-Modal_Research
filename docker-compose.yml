@@ -1,0 +1,102 @@
+services:
+
+  train:
+    build: .
+    runtime: nvidia
+    container_name: vlm-train
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    command: >
+      python -m training.train_vlm
+        --model_config configs/model.yaml
+        --train_config configs/training.yaml
+        --output_dir outputs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  inference:
+    build: .
+    runtime: nvidia
+    container_name: vlm-inference
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: python -m inference.generate
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  chat:
+    build: .
+    runtime: nvidia
+    container_name: vlm-chat
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+      - ./knowledge:/app/knowledge
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: python -m inference.run_chat
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  evaluate:
+    build: .
+    runtime: nvidia
+    container_name: vlm-eval
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: python -m evaluation.run_benchmarks
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  demo:
+    build: .
+    runtime: nvidia
+    container_name: vlm-demo
+    volumes:
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: python -m demo
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -5,11 +5,11 @@ import torch
 import argparse
 
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
 
 from multimodal.vlm_model import VLM
 from utils.config import load_config
 from experiments.logger import Logger
+from dataset.instruction_dataset import InstructionDataset, collate_fn
 
 
 # -----------------------------
@@ -34,12 +34,11 @@ def load_latest_checkpoint(model, optimizer, output_dir):
         return 0
 
     ckpts.sort()
-
     latest = ckpts[-1]
 
     print("Resuming from:", latest)
 
-    data = torch.load(latest)
+    data = torch.load(latest, map_location="cpu")
 
     model.load_state_dict(data["model"])
     optimizer.load_state_dict(data["optimizer"])
@@ -53,9 +52,10 @@ def load_latest_checkpoint(model, optimizer, output_dir):
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--model_config")
-parser.add_argument("--train_config")
-parser.add_argument("--output_dir")
+parser.add_argument("--model_config", type=str, default="configs/model.yaml")
+parser.add_argument("--train_config", type=str, default="configs/training.yaml")
+parser.add_argument("--optim_config", type=str, default="configs/optimizer.yaml")
+parser.add_argument("--output_dir", type=str, default="outputs")
 
 args = parser.parse_args()
 
@@ -66,6 +66,7 @@ args = parser.parse_args()
 
 model_cfg = load_config(args.model_config)
 train_cfg = load_config(args.train_config)
+optim_cfg = load_config(args.optim_config)
 
 
 # -----------------------------
@@ -75,7 +76,10 @@ train_cfg = load_config(args.train_config)
 batch_size = train_cfg["batch_size"]
 epochs = train_cfg["epochs"]
 
-accum_steps = train_cfg.get("gradient_accumulation_steps", 1)
+contrastive_weight = train_cfg.get("contrastive_weight", 0.1)
+moe_weight = train_cfg.get("moe_weight", 0.01)
+
+vocab_size = int(model_cfg["vocab_size"])
 
 
 # -----------------------------
@@ -90,13 +94,12 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 # -----------------------------
 
 model = VLM(
-    vision_dim=model_cfg["vision_dim"],
-    text_dim=model_cfg["text_dim"],
-    num_layers=model_cfg["num_layers"],
-    vocab_size=model_cfg["vocab_size"]
-)
+    vocab=vocab_size,
+    dim=int(model_cfg["text_dim"])
+).to(device)
 
-model = model.to(device)
+print("Model vocab:", vocab_size)
+print("Embedding shape:", model.text.embed.weight.shape)
 
 
 # -----------------------------
@@ -105,10 +108,10 @@ model = model.to(device)
 
 optimizer = torch.optim.AdamW(
     model.parameters(),
-    lr=1e-4
+    lr=float(optim_cfg["lr"]),
+    weight_decay=float(optim_cfg["weight_decay"]),
+    betas=tuple(optim_cfg["betas"])
 )
-
-scaler = GradScaler()
 
 
 # -----------------------------
@@ -116,20 +119,24 @@ scaler = GradScaler()
 # -----------------------------
 
 os.makedirs(args.output_dir, exist_ok=True)
-
 logger = Logger(args.output_dir)
 
 
 # -----------------------------
-# Dataset placeholder
+# Dataset
 # -----------------------------
 
-dataset = []
+dataset = InstructionDataset("data/instruction_data.json")
 
 loader = DataLoader(
     dataset,
-    batch_size=batch_size
+    batch_size=batch_size,
+    shuffle=True,
+    collate_fn=collate_fn
 )
+
+print("Dataset size:", len(dataset))
+print("Total batches:", len(loader))
 
 
 # -----------------------------
@@ -142,14 +149,15 @@ start_step = load_latest_checkpoint(
     args.output_dir
 )
 
+step = start_step
+last_loss = None
+
+optimizer.zero_grad()
+
 
 # -----------------------------
 # Training loop
 # -----------------------------
-
-step = start_step
-
-optimizer.zero_grad()
 
 for epoch in range(epochs):
 
@@ -157,35 +165,93 @@ for epoch in range(epochs):
 
         images = batch["image"].to(device)
         tokens = batch["tokens"].to(device)
+        labels = batch["labels"].to(device).long()
 
-        # Mixed precision forward
-        with autocast():
+        # -----------------------------
+        # Label safety
+        # -----------------------------
 
-            logits = model(images, tokens)
+        labels = torch.where(labels >= vocab_size, -100, labels)
+        labels = torch.where(labels < -100, -100, labels)
 
-            loss = logits.mean()
+        # -----------------------------
+        # Forward pass
+        # -----------------------------
 
-        # Normalize loss for accumulation
-        loss = loss / accum_steps
+        logits, img_emb, txt_emb, moe_loss = model(images, tokens)
 
-        scaler.scale(loss).backward()
+        # Ensure shapes are valid
+        if img_emb.dim() > 2:
+            img_emb = img_emb.mean(dim=1)
 
-        # Update weights after accumulation
-        if step % accum_steps == 0:
+        if txt_emb.dim() > 2:
+            txt_emb = txt_emb.mean(dim=1)
 
-            torch.nn.utils.clip_grad_norm_(
-                model.parameters(),
-                1.0
-            )
+        # -----------------------------
+        # Language modeling loss (shifted for next-token prediction)
+        # -----------------------------
 
-            scaler.step(optimizer)
-            scaler.update()
+        shift_logits = logits[:, :-1, :].contiguous()
+        shift_labels = labels[:, 1:].contiguous()
 
-            optimizer.zero_grad()
+        lm_loss = torch.nn.functional.cross_entropy(
+            shift_logits.reshape(-1, shift_logits.size(-1)),
+            shift_labels.reshape(-1),
+            ignore_index=-100
+        )
+
+        # -----------------------------
+        # Contrastive loss
+        # -----------------------------
+
+        img_emb = torch.nan_to_num(img_emb.float())
+        txt_emb = torch.nan_to_num(txt_emb.float())
+
+        img_emb = torch.nn.functional.normalize(img_emb, dim=-1, eps=1e-6)
+        txt_emb = torch.nn.functional.normalize(txt_emb, dim=-1, eps=1e-6)
+
+        similarity = img_emb @ txt_emb.T
+
+        targets = torch.arange(similarity.size(0), device=device)
+
+        contrastive_loss = torch.nn.functional.cross_entropy(
+            similarity,
+            targets
+        )
+
+        # -----------------------------
+        # Total loss
+        # -----------------------------
+
+        loss = (
+            lm_loss
+            + contrastive_weight * contrastive_loss
+            + moe_weight * moe_loss
+        )
+
+        last_loss = loss.item()
+
+        # -----------------------------
+        # Backprop
+        # -----------------------------
+
+        optimizer.zero_grad()
+
+        loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(
+            model.parameters(),
+            1.0
+        )
+
+        optimizer.step()
 
         logger.log(step, loss.item())
 
+        # -----------------------------
         # Logging
+        # -----------------------------
+
         if step % 10 == 0:
 
             vram = 0
@@ -198,7 +264,10 @@ for epoch in range(epochs):
                 f"vram {vram:.2f} GB"
             )
 
-        # Save checkpoint
+        # -----------------------------
+        # Checkpoint
+        # -----------------------------
+
         if step % 1000 == 0:
 
             torch.save(
@@ -217,16 +286,36 @@ for epoch in range(epochs):
 
 
 # -----------------------------
+# Save final checkpoint
+# -----------------------------
+
+torch.save(
+    {
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "step": step
+    },
+    os.path.join(
+        args.output_dir,
+        f"checkpoint_{step}.pt"
+    )
+)
+
+print(f"Saved final checkpoint at step {step}")
+
+
+# -----------------------------
 # Save metrics
 # -----------------------------
 
 metrics = {
-    "final_loss": float(loss.item())
+    "final_loss": float(last_loss) if last_loss else None
 }
 
 with open(
     os.path.join(args.output_dir, "metrics.json"),
     "w"
 ) as f:
-
     json.dump(metrics, f)
+
+print("Training finished.")

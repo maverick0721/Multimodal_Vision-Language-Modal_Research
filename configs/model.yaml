@@ -1,7 +1,14 @@
 vision_dim: 768
 text_dim: 768
+
 num_layers: 12
 num_heads: 8
+ffn_dim: 3072
+
 num_experts: 4
-vocab_size: 32000
+
+vocab_size: 50257
+
 latent_tokens: 64
+image_size: 224
+patch_size: 16

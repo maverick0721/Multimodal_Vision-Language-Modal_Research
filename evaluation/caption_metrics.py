@@ -1,10 +1,36 @@
 import nltk
-from nltk.translate.bleu_score import sentence_bleu
 
 
-def bleu_score(reference, prediction):
+def tensor_to_tokens(t):
 
-    reference = [reference.split()]
-    prediction = prediction.split()
+    # convert tensor → python list
+    tokens = t.detach().cpu().tolist()
 
-    return sentence_bleu(reference, prediction)
+    # remove padding tokens (0)
+    tokens = [str(x) for x in tokens if x != 0]
+
+    return tokens
+
+
+def bleu_score(pred, ref):
+
+    scores = []
+
+    for p, r in zip(pred, ref):
+
+        p_tokens = tensor_to_tokens(p)
+        r_tokens = tensor_to_tokens(r)
+
+        reference = [r_tokens]
+
+        score = nltk.translate.bleu_score.sentence_bleu(
+            reference,
+            p_tokens
+        )
+
+        scores.append(score)
+
+    if len(scores) == 0:
+        return 0
+
+    return sum(scores) / len(scores)

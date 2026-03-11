@@ -1,13 +1,23 @@
 from inference.chat_vlm import VLMChat
+import glob
+import readline
 
+ckpts = sorted(glob.glob("outputs/checkpoint_*.pt") + glob.glob("experiments/*/checkpoint_*.pt"))
+checkpoint = ckpts[-1] if ckpts else None
 
 chat = VLMChat(
-    checkpoint="experiments/run_001/checkpoint_1000.pt"
+    checkpoint=checkpoint
 )
 
-response = chat.chat(
-    image="data/images/dog.jpg",
-    question="What animal is this?"
-)
+print("VLM Chat ready. Type 'quit' to exit.\n")
 
-print(response)
+while True:
+    image = input("Image path: ")
+    if image.lower() == "quit":
+        break
+    question = input("Question: ")
+    if question.lower() == "quit":
+        break
+
+    response = chat.chat(image=image, question=question)
+    print("\nModel:", response, "\n")

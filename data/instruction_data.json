@@ -13,6 +13,123 @@
         ]
     },
     {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What is in the image?"
+            },
+            {
+                "role": "assistant",
+                "content": "The image shows a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Describe the image."
+            },
+            {
+                "role": "assistant",
+                "content": "The image shows a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What do you see?"
+            },
+            {
+                "role": "assistant",
+                "content": "I see a dog in the image."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Is this a cat or a dog?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What kind of animal is shown?"
+            },
+            {
+                "role": "assistant",
+                "content": "The animal shown is a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Can you identify the animal?"
+            },
+            {
+                "role": "assistant",
+                "content": "Yes, the animal is a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What is shown in the picture?"
+            },
+            {
+                "role": "assistant",
+                "content": "The picture shows a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Tell me what you see."
+            },
+            {
+                "role": "assistant",
+                "content": "I can see a dog in this image."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Is there an animal in this image?"
+            },
+            {
+                "role": "assistant",
+                "content": "Yes, there is a dog in this image."
+            }
+        ]
+    },
+    {
         "image": "images/car.jpg",
         "conversations": [
             {
@@ -22,6 +139,175 @@
             {
                 "role": "assistant",
                 "content": "The image shows a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What is in the image?"
+            },
+            {
+                "role": "assistant",
+                "content": "The image shows a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Describe the image."
+            },
+            {
+                "role": "assistant",
+                "content": "The image shows a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What do you see?"
+            },
+            {
+                "role": "assistant",
+                "content": "I see a car in the image."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What vehicle is this?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What car is this?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Is this a car or a truck?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What kind of vehicle is shown?"
+            },
+            {
+                "role": "assistant",
+                "content": "The vehicle shown is a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Can you identify what is in the image?"
+            },
+            {
+                "role": "assistant",
+                "content": "Yes, the image shows a car."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Tell me what you see."
+            },
+            {
+                "role": "assistant",
+                "content": "I can see a car in this image."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "Is there a vehicle in this image?"
+            },
+            {
+                "role": "assistant",
+                "content": "Yes, there is a car in this image."
+            }
+        ]
+    },
+    {
+        "image": "images/car.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What is this?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a car."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What is this?"
+            },
+            {
+                "role": "assistant",
+                "content": "This is a dog."
+            }
+        ]
+    },
+    {
+        "image": "images/dog.jpg",
+        "conversations": [
+            {
+                "role": "user",
+                "content": "What animal is in the image?"
+            },
+            {
+                "role": "assistant",
+                "content": "There is a dog in the image."
             }
         ]
     }

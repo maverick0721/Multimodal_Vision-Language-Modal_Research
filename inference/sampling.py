@@ -13,7 +13,7 @@ def top_p(logits,p=0.9,temp=1.0):
 
     cumulative = torch.cumsum(sorted_probs,-1)
 
-    mask = cumulative > p
+    mask = cumulative - sorted_probs > p
 
     sorted_probs[mask] = 0
 

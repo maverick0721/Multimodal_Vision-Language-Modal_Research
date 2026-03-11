@@ -2,8 +2,8 @@ import torch
 from PIL import Image
 import torchvision.transforms as T
 
-from multimodal.vlm_model import VLM
-from inference.generate import generate
+from inference.generate import Generator
+from utils.config import load_config
 
 # Retrieval
 from retrieval.load_knowledge import load_knowledge
@@ -23,7 +23,7 @@ class VLMChat:
     def __init__(
         self,
         checkpoint=None,
-        vocab=32000,
+        vocab=None,
         device=None
     ):
 
@@ -34,20 +34,13 @@ class VLMChat:
         )
 
 
-        # Load VLM
-        self.model = VLM(vocab=vocab)
-
-        if checkpoint is not None:
-
-            state = torch.load(
-                checkpoint,
-                map_location=self.device
-            )
-
-            self.model.load_state_dict(state)
-
-        self.model.to(self.device)
-        self.model.eval()
+        # Load VLM via Generator
+        self.generator = Generator(
+            checkpoint=checkpoint,
+            vocab=vocab,
+            device=self.device
+        )
+        self.model = self.generator.model
 
     
         # Retrieval system
@@ -63,7 +56,7 @@ class VLMChat:
     
         # Tools + reasoning
         self.router = ToolRouter()
-        self.agent = ReActAgent(self.model)
+        self.agent = ReActAgent(self.generator)
 
    
         # Conversation memory
@@ -117,30 +110,11 @@ Answer:
     # Chat interface
     def chat(self, image, question):
 
-        image = self.load_image(image)
+        # -------- generate answer using trained prompt format --------
 
-        # -------- tool detection --------
-
-        tool_result = self.router.run(question)
-
-        if tool_result is not None:
-
-            question = f"""
-Tool result: {tool_result}
-
-User question:
-{question}
-"""
-
-        # -------- build prompt --------
-
-        prompt = self.build_prompt(question)
-
-        # -------- reasoning agent --------
-
-        answer = self.agent.run(
-            image=image,
-            question=prompt
+        answer = self.generator.generate(
+            image_path=image,
+            prompt=question
         )
 
         # -------- update memory --------

@@ -1,12 +1,12 @@
 from agents.router import ToolRouter
-from inference.generate import generate
+from inference.generate import Generator
 
 
 class ReActAgent:
 
-    def __init__(self, model):
+    def __init__(self, generator):
 
-        self.model = model
+        self.generator = generator
         self.router = ToolRouter()
 
     def run(self, image, question, steps=3):
@@ -27,7 +27,7 @@ Thought:
 Action:
 """
 
-            output = generate(self.model, image, prompt)
+            output = self.generator.generate(image, prompt)
 
             tool_result = self.router.run(output)
 
@@ -47,6 +47,6 @@ Observation: {tool_result}
 Final Answer:
 """
 
-        answer = generate(self.model, image, final_prompt)
+        answer = self.generator.generate(image, final_prompt)
 
         return answer

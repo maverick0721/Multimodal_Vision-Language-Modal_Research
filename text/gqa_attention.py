@@ -41,7 +41,7 @@ class GQAAttention(nn.Module):
 
             kv_cache.append(layer_id, k, v)
 
-        out = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+        out = torch.nn.functional.scaled_dot_product_attention(q, k, v, is_causal=(kv_cache is None))
 
         out = out.transpose(1,2).reshape(B, T, D)
 

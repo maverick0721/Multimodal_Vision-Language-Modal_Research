@@ -8,9 +8,14 @@ class Trainer:
 
     def step(self, images, tokens, labels):
 
-        logits = self.model(images, tokens)
+        outputs = self.model(images, tokens)
+        logits = outputs[0]
 
-        loss = F.cross_entropy(logits, labels)
+        loss = F.cross_entropy(
+            logits.view(-1, logits.size(-1)),
+            labels.view(-1),
+            ignore_index=-100
+        )
 
         self.optimizer.zero_grad()
 
